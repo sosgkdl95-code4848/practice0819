@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Header } from './components/Header';
 import { TerraformingBoard } from './components/board/TerraformingBoard';
 import { Leaderboard } from './components/Leaderboard';
@@ -7,10 +7,38 @@ import { TeacherPanel } from './components/TeacherPanel';
 import { VictoryModal } from './components/VictoryModal';
 import { LoginPage } from './components/auth/LoginPage';
 import { useAuthStore } from './store/useAuthStore';
+import { useTerraformStore } from './store/useTerraformStore';
+import { getOrCreateTeacherClass, subscribeToClassFirestore } from './services/firebase';
 import { Rocket, Heart } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { currentUser } = useAuthStore();
+  const { loadFirestoreClassDoc } = useTerraformStore();
+
+  // 로그인 성공 시 해당 교사/학생의 독립된 Firestore 반 데이터를 불러오고 실시간 동기화
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const initClass = async () => {
+      if (currentUser.role === 'admin') {
+        const classDoc = await getOrCreateTeacherClass(
+          currentUser.uid,
+          currentUser.email,
+          currentUser.displayName
+        );
+        loadFirestoreClassDoc(classDoc);
+      }
+    };
+
+    initClass();
+
+    // 해당 반의 실시간 데이터 변경 구독
+    const unsubscribe = subscribeToClassFirestore(currentUser.classId, (classDoc) => {
+      loadFirestoreClassDoc(classDoc);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, loadFirestoreClassDoc]);
 
   // 로그인하지 않은 상태일 때는 무조건 첫 페이지로 구글 로그인 화면 렌더링
   if (!currentUser) {

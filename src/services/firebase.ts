@@ -17,7 +17,9 @@ import {
   onSnapshot,
   DocumentSnapshot,
 } from 'firebase/firestore';
-import { UserDoc, HexTile } from '../types';
+import { UserDoc, ClassDoc } from '../types';
+import { INITIAL_HEX_TILES } from '../utils/mapData';
+import { INITIAL_STUDENTS, INITIAL_GROUPS, INITIAL_LOGS } from '../utils/sampleData';
 
 export interface FirebaseConfigParams {
   apiKey: string;
@@ -128,14 +130,16 @@ export const logOut = async (): Promise<void> => {
 };
 
 /**
- * Firestore users 컬렉션 프로필 동기화 (에러 발생 시에도 안전하게 유저 객체 반환)
+ * Firestore users 컬렉션 프로필 동기화
  */
 export const syncUserProfileFirestore = async (
   fbUser: { uid: string; email: string | null; displayName: string | null; photoURL: string | null },
-  isTeacher: boolean,
-  classId: string = 'class-mars-01'
+  isTeacher: boolean
 ): Promise<UserDoc> => {
   const role = isTeacher ? 'admin' : 'student';
+  const classId = isTeacher
+    ? `class_${fbUser.uid.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+    : 'class_default';
 
   const defaultUserDoc: UserDoc = {
     uid: fbUser.uid,
@@ -160,7 +164,9 @@ export const syncUserProfileFirestore = async (
 
     if (snap.exists()) {
       const data = snap.data() as UserDoc;
-      return { ...data, role: isTeacher ? 'admin' : data.role || role };
+      const updated = { ...data, role: isTeacher ? 'admin' : data.role || role, classId: data.classId || classId };
+      await setDoc(userRef, updated, { merge: true });
+      return updated;
     } else {
       await setDoc(userRef, defaultUserDoc);
       return defaultUserDoc;
@@ -172,18 +178,70 @@ export const syncUserProfileFirestore = async (
 };
 
 /**
+ * 교사 아이디별 독립된 반(Class) 데이터 가져오기 또는 새로 생성
+ */
+export const getOrCreateTeacherClass = async (
+  teacherUid: string,
+  teacherEmail: string,
+  teacherName: string
+): Promise<ClassDoc> => {
+  const classId = `class_${teacherUid.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
+  const defaultClassDoc: ClassDoc = {
+    classId,
+    className: `${teacherName} 선생님의 화성 개척반`,
+    teacherUid,
+    teacherEmail,
+    teacherName,
+    temperature: -28,
+    oxygen: 1,
+    ocean: 1,
+    greeneryCount: 1,
+    cityCount: 1,
+    hexTiles: INITIAL_HEX_TILES,
+    students: INITIAL_STUDENTS,
+    groups: INITIAL_GROUPS,
+    logs: INITIAL_LOGS,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!db) {
+    return defaultClassDoc;
+  }
+
+  try {
+    const classRef = doc(db, 'classes', classId);
+    const snap = await getDoc(classRef);
+
+    if (snap.exists()) {
+      const data = snap.data() as ClassDoc;
+      console.log(`📡 [${classId}] 기존 학급 보드판 데이터를 불러왔습니다.`);
+      return data;
+    } else {
+      await setDoc(classRef, defaultClassDoc);
+      console.log(`✨ [${classId}] 새 교사용 독립 화성 보드판이 생성되었습니다.`);
+      return defaultClassDoc;
+    }
+  } catch (err) {
+    console.warn('Firestore 반 생성/불러오기 지연:', err);
+    return defaultClassDoc;
+  }
+};
+
+/**
  * Firestore classes 컬렉션 실시간 구독
  */
 export const subscribeToClassFirestore = (
   classId: string,
-  callback: (data: { map: HexTile[]; globalParameters: { oxygen: number; temperature: number; oceans: number } }) => void
+  callback: (data: ClassDoc) => void
 ): (() => void) => {
   if (!db) return () => {};
 
   const classRef = doc(db, 'classes', classId);
   return onSnapshot(classRef, (snap: DocumentSnapshot) => {
     if (snap.exists()) {
-      const data = snap.data() as { map: HexTile[]; globalParameters: { oxygen: number; temperature: number; oceans: number } };
+      const data = snap.data() as ClassDoc;
       callback(data);
     }
   });
@@ -192,21 +250,15 @@ export const subscribeToClassFirestore = (
 /**
  * Firestore classes 컬렉션 게임판 업데이트
  */
-export const updateClassBoardFirestore = async (
-  classId: string,
-  map: HexTile[],
-  globalParameters: { oxygen: number; temperature: number; oceans: number }
-): Promise<void> => {
+export const updateClassBoardFirestore = async (classDoc: Partial<ClassDoc> & { classId: string }): Promise<void> => {
   if (!db) return;
 
   try {
-    const classRef = doc(db, 'classes', classId);
+    const classRef = doc(db, 'classes', classDoc.classId);
     await setDoc(
       classRef,
       {
-        classId,
-        map,
-        globalParameters,
+        ...classDoc,
         updatedAt: new Date().toISOString(),
       },
       { merge: true }

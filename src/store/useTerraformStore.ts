@@ -47,6 +47,12 @@ interface TerraformState {
   isParameterMaxed: (type: ParameterType) => boolean;
   isFullyTerraformed: () => boolean;
 
+  // Class & Firestore Sync
+  activeClassId: string;
+  activeClassName: string;
+  loadFirestoreClassDoc: (classDoc: any) => void;
+  syncToFirestore: () => void;
+
   // Actions
   investStandardProject: (studentId: string, projectType: ProjectType) => { success: boolean; message: string };
   investParameter: (studentId: string, type: ParameterType) => { success: boolean; message: string };
@@ -70,15 +76,15 @@ interface TerraformState {
 export const useTerraformStore = create<TerraformState>()(
   persist(
     (set, get) => ({
+      activeClassId: 'class_default',
+      activeClassName: '화성 개척 종합반',
       temperature: -28,
       oxygen: 1,
       ocean: 1,
       greeneryCount: 1,
       cityCount: 1,
       hexTiles: (() => {
-        // 초기 샘플 타일 몇 개 활성화
         const tiles = [...INITIAL_HEX_TILES];
-        // 1개 바다, 1개 녹지, 1개 도시
         const oceanSpot = tiles.find((t) => t.type === 'reserved_ocean');
         if (oceanSpot) {
           oceanSpot.type = 'ocean';
@@ -103,6 +109,43 @@ export const useTerraformStore = create<TerraformState>()(
       isMuted: false,
       showVictoryModal: false,
       lastMaxedParameter: null,
+
+      loadFirestoreClassDoc: (classDoc: any) => {
+        if (!classDoc) return;
+        set({
+          activeClassId: classDoc.classId || get().activeClassId,
+          activeClassName: classDoc.className || get().activeClassName,
+          temperature: typeof classDoc.temperature === 'number' ? classDoc.temperature : get().temperature,
+          oxygen: typeof classDoc.oxygen === 'number' ? classDoc.oxygen : get().oxygen,
+          ocean: typeof classDoc.ocean === 'number' ? classDoc.ocean : get().ocean,
+          greeneryCount: typeof classDoc.greeneryCount === 'number' ? classDoc.greeneryCount : get().greeneryCount,
+          cityCount: typeof classDoc.cityCount === 'number' ? classDoc.cityCount : get().cityCount,
+          hexTiles: Array.isArray(classDoc.hexTiles) ? classDoc.hexTiles : get().hexTiles,
+          students: Array.isArray(classDoc.students) ? classDoc.students : get().students,
+          groups: Array.isArray(classDoc.groups) ? classDoc.groups : get().groups,
+          logs: Array.isArray(classDoc.logs) ? classDoc.logs : get().logs,
+        });
+      },
+
+      syncToFirestore: () => {
+        const state = get();
+        if (!state.activeClassId) return;
+        import('../services/firebase').then(({ updateClassBoardFirestore }) => {
+          updateClassBoardFirestore({
+            classId: state.activeClassId,
+            className: state.activeClassName,
+            temperature: state.temperature,
+            oxygen: state.oxygen,
+            ocean: state.ocean,
+            greeneryCount: state.greeneryCount,
+            cityCount: state.cityCount,
+            hexTiles: state.hexTiles,
+            students: state.students,
+            groups: state.groups as any,
+            logs: state.logs,
+          });
+        });
+      },
 
       getClassTR: () => {
         const { temperature, oxygen, ocean, greeneryCount, cityCount } = get();

@@ -21,6 +21,25 @@ export interface UserDoc {
   createdAt: string;
 }
 
+export interface ClassDoc {
+  classId: string;
+  className: string;
+  teacherUid: string;
+  teacherEmail: string;
+  teacherName: string;
+  temperature: number;
+  oxygen: number;
+  ocean: number;
+  greeneryCount: number;
+  cityCount: number;
+  hexTiles: HexTile[];
+  students: Student[];
+  groups: string[];
+  logs: ActivityLog[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Student {
   id: string;
   name: string;

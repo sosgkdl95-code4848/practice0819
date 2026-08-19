@@ -15,6 +15,7 @@ import {
 
 export const Header: React.FC = () => {
   const {
+    activeClassName,
     isTeacherMode,
     toggleTeacherMode,
     isMuted,
@@ -49,8 +50,8 @@ export const Header: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-black tracking-wider bg-gradient-to-r from-red-400 via-orange-300 to-amber-200 bg-clip-text text-transparent">
                 TERRAFORMING CLASS
               </h1>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-mars-500/20 text-mars-500 border border-mars-500/30">
-                v1.2
+              <span className="hidden sm:inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                {activeClassName}
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium">화성 개척 학급 경영 미션 컨트롤</p>
