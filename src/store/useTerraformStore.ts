@@ -483,6 +483,7 @@ export const useTerraformStore = create<TerraformState>()(
           ocean: 2,
           greeneryCount: 3,
           cityCount: 2,
+          hexTiles: INITIAL_HEX_TILES,
           students: INITIAL_STUDENTS,
           groups: INITIAL_GROUPS,
           logs: INITIAL_LOGS,
@@ -505,7 +506,7 @@ export const useTerraformStore = create<TerraformState>()(
       },
     }),
     {
-      name: 'terraforming-class-storage',
+      name: 'terraforming-class-storage-v3',
     }
   )
 );
