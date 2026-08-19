@@ -1,5 +1,9 @@
 export type ParameterType = 'temperature' | 'oxygen' | 'ocean';
 
+export type ProjectType = 'temperature' | 'oxygen' | 'ocean' | 'greenery' | 'city';
+
+export type TileType = 'empty' | 'ocean' | 'greenery' | 'city' | 'reserved_ocean';
+
 export type LogType = 'reward' | 'penalty' | 'investment' | 'system';
 
 export interface Student {
@@ -19,6 +23,19 @@ export interface GroupSummary {
   students: Student[];
 }
 
+export interface HexTile {
+  id: number;
+  q: number; // axial coordinate q
+  r: number; // axial coordinate r
+  x: number; // pixel x coordinate in SVG
+  y: number; // pixel y coordinate in SVG
+  type: TileType;
+  label?: string;
+  ownerStudentId?: string;
+  ownerStudentName?: string;
+  placedAt?: string;
+}
+
 export interface ActivityLog {
   id: string;
   timestamp: string;
@@ -26,7 +43,7 @@ export interface ActivityLog {
   targetName: string;
   message: string;
   amount?: number;
-  parameter?: ParameterType;
+  parameter?: ProjectType;
   reason?: string;
 }
 
@@ -51,7 +68,7 @@ export const PARAMETER_CONFIGS: Record<ParameterType, ParameterConfig> = {
     max: 8,
     step: 2,
     cost: 10,
-    totalSteps: 19, // (-30 to 8 = 38 / 2 = 19 steps)
+    totalSteps: 19,
     description: '1회 투자(10 코인) 시 온도가 2°C 상승하고 기여 TR이 +1 증가합니다.',
   },
   oxygen: {
@@ -62,7 +79,7 @@ export const PARAMETER_CONFIGS: Record<ParameterType, ParameterConfig> = {
     max: 14,
     step: 1,
     cost: 12,
-    totalSteps: 14, // (0 to 14 = 14 steps)
+    totalSteps: 14,
     description: '1회 투자(12 코인) 시 산소 농도가 1% 상승하고 기여 TR이 +1 증가합니다.',
   },
   ocean: {
@@ -73,10 +90,68 @@ export const PARAMETER_CONFIGS: Record<ParameterType, ParameterConfig> = {
     max: 9,
     step: 1,
     cost: 15,
-    totalSteps: 9, // (0 to 9 = 9 steps)
+    totalSteps: 9,
     description: '1회 투자(15 코인) 시 해수면 타일이 1개 건설되고 기여 TR이 +1 증가합니다.',
   },
 };
+
+export interface StandardProjectConfig {
+  id: ProjectType;
+  title: string;
+  subTitle: string;
+  cost: number;
+  effect: string;
+  icon: string;
+  color: string;
+}
+
+export const STANDARD_PROJECTS: StandardProjectConfig[] = [
+  {
+    id: 'temperature',
+    title: '소행성 충돌 (Asteroid)',
+    subTitle: '온도 상승 프로젝트',
+    cost: 10,
+    effect: '온도 +2°C / TR +1',
+    icon: '🌡️',
+    color: 'from-orange-500 to-red-600',
+  },
+  {
+    id: 'oxygen',
+    title: '대기 방출 (Oxygen)',
+    subTitle: '산소 농도 조성',
+    cost: 12,
+    effect: '산소 +1% / TR +1',
+    icon: '💨',
+    color: 'from-emerald-500 to-teal-600',
+  },
+  {
+    id: 'ocean',
+    title: '대수층 개척 (Aquifer)',
+    subTitle: '해수면 타일 배치',
+    cost: 15,
+    effect: '바다 타일 1개 / TR +1',
+    icon: '🌊',
+    color: 'from-cyan-500 to-blue-600',
+  },
+  {
+    id: 'greenery',
+    title: '녹지 식생 조성 (Greenery)',
+    subTitle: '숲 타일 및 산소 공급',
+    cost: 20,
+    effect: '녹지 타일 1개 / 산소 +1% / TR +1',
+    icon: '🌲',
+    color: 'from-green-500 to-emerald-700',
+  },
+  {
+    id: 'city',
+    title: '도시 건설 (City)',
+    subTitle: '거주 돔 시티 건설',
+    cost: 25,
+    effect: '도시 타일 1개 / TR +1',
+    icon: '🏙️',
+    color: 'from-amber-400 to-yellow-600',
+  },
+];
 
 export const BASE_TR = 20;
 
