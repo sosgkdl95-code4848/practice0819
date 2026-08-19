@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useTerraformStore } from '../store/useTerraformStore';
+import { useAuthStore } from '../store/useAuthStore';
 import {
   Rocket,
   ShieldAlert,
   ShieldCheck,
   RotateCcw,
-  Sparkles,
   Volume2,
   VolumeX,
-  Flame,
   Award,
+  LogOut,
+  Sparkles,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -19,17 +20,17 @@ export const Header: React.FC = () => {
     isMuted,
     toggleMute,
     getClassTR,
-    getTotalProgressPercent,
     loadSampleData,
     resetAllData,
   } = useTerraformStore();
 
+  const { currentUser, logoutUser } = useAuthStore();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
   const classTR = getClassTR();
-  const totalProgress = getTotalProgressPercent();
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-space-950/80 border-b border-white/10 shadow-2xl transition-all">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-space-950/85 border-b border-white/10 shadow-2xl transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* 로고 및 서비스명 */}
         <div className="flex items-center gap-3 min-w-max">
@@ -39,8 +40,8 @@ export const Header: React.FC = () => {
                 <Rocket className="w-6 h-6 text-mars-500 transform -rotate-45" />
               </div>
             </div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-mars-cyan rounded-full border-2 border-space-950 animate-ping" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-mars-cyan rounded-full border-2 border-space-950" />
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-mars-cyan rounded-full border-2 border-space-950 animate-ping" />
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-mars-cyan rounded-full border-2 border-space-950" />
           </div>
 
           <div>
@@ -49,14 +50,14 @@ export const Header: React.FC = () => {
                 TERRAFORMING CLASS
               </h1>
               <span className="hidden sm:inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-mars-500/20 text-mars-500 border border-mars-500/30">
-                v1.0
+                v1.2
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium">화성 개척 학급 경영 미션 컨트롤</p>
           </div>
         </div>
 
-        {/* 중앙 TR 현황 (데스크톱) */}
+        {/* 중앙 TR 현황 */}
         <div className="hidden md:flex items-center gap-4 bg-space-850/80 px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
@@ -70,24 +71,41 @@ export const Header: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="h-8 w-px bg-white/10" />
-
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-mars-cyan/20 text-mars-cyan">
-              <Flame className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">종합 진척도</div>
-              <div className="text-lg font-black text-mars-cyan leading-none flex items-baseline gap-1">
-                <span>{totalProgress}%</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* 우측 컨트롤 도구들 */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* 로그인 유저 프로필 뱃지 */}
+          {currentUser && (
+            <div className="flex items-center gap-2.5 bg-space-850 pl-3 pr-2 py-1.5 rounded-2xl border border-white/10 shadow-md">
+              <div className="text-right">
+                <div className="text-xs font-bold text-white leading-tight flex items-center gap-1.5 justify-end">
+                  <span>{currentUser.displayName}</span>
+                  {currentUser.role === 'admin' ? (
+                    <span className="text-[9px] bg-purple-500/30 text-purple-300 border border-purple-500/40 px-1.5 py-0.2 rounded-full font-black">
+                      교사
+                    </span>
+                  ) : (
+                    <span className="text-[9px] bg-amber-500/30 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded-full font-black">
+                      대원
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-amber-400 font-mono font-bold leading-tight">
+                  🪙 {currentUser.coins} 코인 | TR {currentUser.tier}
+                </div>
+              </div>
+
+              <button
+                onClick={() => logoutUser()}
+                className="p-2 rounded-xl bg-space-800 text-slate-400 hover:text-rose-400 hover:bg-space-700 transition"
+                title="로그아웃 (로그인 화면으로 이동)"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* 음소거 토글 */}
           <button
             onClick={toggleMute}
@@ -124,7 +142,7 @@ export const Header: React.FC = () => {
           {/* 교사 관리자 모드 스위치 */}
           <button
             onClick={toggleTeacherMode}
-            className={`relative flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all duration-300 ${
+            className={`relative flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all duration-300 ${
               isTeacherMode
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400/50 shadow-neon-purple scale-105'
                 : 'bg-space-800/90 text-slate-300 border-white/10 hover:bg-space-700 hover:text-white'
@@ -133,28 +151,15 @@ export const Header: React.FC = () => {
             {isTeacherMode ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-purple-200 animate-bounce" />
-                <span>교사 모드 ON</span>
+                <span>교사 모드</span>
               </>
             ) : (
               <>
                 <ShieldAlert className="w-4 h-4 text-slate-400" />
-                <span>교사 모드 OFF</span>
+                <span>교사 모드</span>
               </>
             )}
           </button>
-        </div>
-      </div>
-
-      {/* 모바일 TR 바 */}
-      <div className="md:hidden flex items-center justify-around bg-space-900/90 px-4 py-2 border-t border-white/5 text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-400 font-medium">학급 TR:</span>
-          <span className="font-bold text-amber-300">{classTR} TR</span>
-        </div>
-        <div className="h-3 w-px bg-white/10" />
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-400 font-medium">개척 진척도:</span>
-          <span className="font-bold text-mars-cyan">{totalProgress}%</span>
         </div>
       </div>
 
@@ -167,7 +172,7 @@ export const Header: React.FC = () => {
               <h3 className="text-lg font-bold text-white">모든 데이터를 초기화할까요?</h3>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              화성 파라미터(온도, 산소, 해수면)와 학생들의 코인, 기여도, 활동 로그가 기본 상태로 되돌아갑니다.
+              화성 91칸 그리드, 글로벌 지표, 학생 자원이 초기화됩니다.
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

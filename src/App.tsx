@@ -5,9 +5,19 @@ import { Leaderboard } from './components/Leaderboard';
 import { ActivityLogs } from './components/ActivityLogs';
 import { TeacherPanel } from './components/TeacherPanel';
 import { VictoryModal } from './components/VictoryModal';
+import { LoginPage } from './components/auth/LoginPage';
+import { useAuthStore } from './store/useAuthStore';
 import { Rocket, Heart } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const { currentUser } = useAuthStore();
+
+  // 로그인하지 않은 상태이면 첫 페이지로 구글 로그인 화면 렌더링
+  if (!currentUser) {
+    return <LoginPage />;
+  }
+
+  // 로그인 후에는 기존의 완벽한 보드게임 판 메인 화면 렌더링
   return (
     <div className="min-h-screen bg-space-950 text-slate-100 flex flex-col selection:bg-mars-500 selection:text-white relative overflow-x-hidden">
       {/* 우주 공간 배경 별빛 및 성운 효과 */}
@@ -18,9 +28,9 @@ export const App: React.FC = () => {
       {/* 최상단 네비게이션 헤더 */}
       <Header />
 
-      {/* 메인 콘텐츠 영역 */}
+      {/* 메인 콘텐츠 영역 (보드게임 판 + 리더보드/타임라인 + 교사 관리 패널) */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 py-6 space-y-8 relative z-10">
-        {/* 1. 실제 보드게임 판 전면 구현 (외곽 TR 트랙 1~100 + 중앙 화성 헥스 지도 + 산소 아치 + 수직 온도계 + 표준 프로젝트) */}
+        {/* 1. 실제 보드게임 판 (외곽 TR 트랙 1~100 + 중앙 91칸 화성 헥스 지도 + 산소 아치 + 수직 온도계 + 표준 프로젝트) */}
         <section>
           <TerraformingBoard />
         </section>

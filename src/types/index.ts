@@ -6,6 +6,21 @@ export type TileType = 'empty' | 'ocean' | 'greenery' | 'city' | 'reserved_ocean
 
 export type LogType = 'reward' | 'penalty' | 'investment' | 'system';
 
+export type UserRole = 'admin' | 'student';
+
+export interface UserDoc {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: UserRole;
+  classId: string;
+  tier: number;
+  coins: number;
+  groupName?: string;
+  createdAt: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -13,6 +28,7 @@ export interface Student {
   coins: number;
   contributionTR: number;
   avatarSeed?: number;
+  role?: UserRole;
 }
 
 export interface GroupSummary {
@@ -25,10 +41,10 @@ export interface GroupSummary {
 
 export interface HexTile {
   id: number;
-  q: number; // axial coordinate q
-  r: number; // axial coordinate r
-  x: number; // pixel x coordinate in SVG
-  y: number; // pixel y coordinate in SVG
+  q: number;
+  r: number;
+  x: number;
+  y: number;
   type: TileType;
   label?: string;
   ownerStudentId?: string;
