@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserDoc } from '../types';
-import { signInWithGoogle, logOut, isFirebaseConfigured } from '../services/firebase';
+import { signInWithGoogle, logOut, isFirebaseConfigured, syncUserProfileFirestore } from '../services/firebase';
 import { soundFX } from '../utils/sound';
 
 interface AuthState {
@@ -28,7 +28,6 @@ export const useAuthStore = create<AuthState>()(
         set({ isAuthenticating: true, error: null });
         try {
           if (!isFirebaseConfigured()) {
-            // Firebase 키가 아직 없을 경우 친절한 안내 후 데모 교사로 연결
             set({
               error: 'Firebase 환경변수가 설정되지 않아 로컬 데모 모드로 연결합니다.',
               isAuthenticating: false,
@@ -43,19 +42,16 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
 
-          const role = res.isTeacher ? 'admin' : 'student';
-          const userDoc: UserDoc = {
-            uid: res.user.uid,
-            email: res.user.email || '',
-            displayName: res.user.displayName || (role === 'admin' ? '김선생님' : '학생 대원'),
-            photoURL: res.user.photoURL || undefined,
-            role,
-            classId: 'class-mars-01',
-            tier: 20,
-            coins: 20,
-            groupName: role === 'admin' ? '교사 관리' : '1모둠 (아레스)',
-            createdAt: new Date().toISOString(),
-          };
+          // Firestore DB와 프로필 동기화
+          const userDoc = await syncUserProfileFirestore(
+            {
+              uid: res.user.uid,
+              email: res.user.email,
+              displayName: res.user.displayName,
+              photoURL: res.user.photoURL,
+            },
+            res.isTeacher
+          );
 
           set({ currentUser: userDoc, isAuthenticating: false });
           soundFX.playCoinSound();
