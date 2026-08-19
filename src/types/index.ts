@@ -1,0 +1,100 @@
+export type ParameterType = 'temperature' | 'oxygen' | 'ocean';
+
+export type LogType = 'reward' | 'penalty' | 'investment' | 'system';
+
+export interface Student {
+  id: string;
+  name: string;
+  groupName: string;
+  coins: number;
+  contributionTR: number;
+  avatarSeed?: number;
+}
+
+export interface GroupSummary {
+  groupName: string;
+  totalCoins: number;
+  groupTR: number;
+  memberCount: number;
+  students: Student[];
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  type: LogType;
+  targetName: string;
+  message: string;
+  amount?: number;
+  parameter?: ParameterType;
+  reason?: string;
+}
+
+export interface ParameterConfig {
+  name: string;
+  code: ParameterType;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  cost: number;
+  totalSteps: number;
+  description: string;
+}
+
+export const PARAMETER_CONFIGS: Record<ParameterType, ParameterConfig> = {
+  temperature: {
+    name: '화성 표면 온도',
+    code: 'temperature',
+    unit: '°C',
+    min: -30,
+    max: 8,
+    step: 2,
+    cost: 10,
+    totalSteps: 19, // (-30 to 8 = 38 / 2 = 19 steps)
+    description: '1회 투자(10 코인) 시 온도가 2°C 상승하고 기여 TR이 +1 증가합니다.',
+  },
+  oxygen: {
+    name: '대기 산소 농도',
+    code: 'oxygen',
+    unit: '%',
+    min: 0,
+    max: 14,
+    step: 1,
+    cost: 12,
+    totalSteps: 14, // (0 to 14 = 14 steps)
+    description: '1회 투자(12 코인) 시 산소 농도가 1% 상승하고 기여 TR이 +1 증가합니다.',
+  },
+  ocean: {
+    name: '해수면 타일',
+    code: 'ocean',
+    unit: '개',
+    min: 0,
+    max: 9,
+    step: 1,
+    cost: 15,
+    totalSteps: 9, // (0 to 9 = 9 steps)
+    description: '1회 투자(15 코인) 시 해수면 타일이 1개 건설되고 기여 TR이 +1 증가합니다.',
+  },
+};
+
+export const BASE_TR = 20;
+
+export interface ReasonPreset {
+  id: string;
+  label: string;
+  amount: number;
+  type: 'reward' | 'penalty';
+}
+
+export const REASON_PRESETS: ReasonPreset[] = [
+  { id: 'pres-1', label: '적극적인 발표 및 질의응답', amount: 2, type: 'reward' },
+  { id: 'pres-2', label: '과제 및 학습지 완벽 제출', amount: 3, type: 'reward' },
+  { id: 'pres-3', label: '모둠 협동 및 팀워크 우수', amount: 2, type: 'reward' },
+  { id: 'pres-4', label: '학급 환경 정화 및 봉사', amount: 2, type: 'reward' },
+  { id: 'pres-5', label: '바른 학습 태도 및 경청', amount: 1, type: 'reward' },
+  { id: 'pres-6', label: '특별 기여 / 미션 완료', amount: 5, type: 'reward' },
+  { id: 'pres-7', label: '학급 규칙 위반 / 주의', amount: -1, type: 'penalty' },
+  { id: 'pres-8', label: '과제 미제출 / 불성실', amount: -2, type: 'penalty' },
+  { id: 'pres-9', label: '수업 방해 / 자리 이탈', amount: -2, type: 'penalty' },
+];
