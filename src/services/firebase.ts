@@ -14,6 +14,7 @@ import {
   setDoc,
   getDoc,
   onSnapshot,
+  DocumentSnapshot,
 } from 'firebase/firestore';
 import { UserDoc, HexTile } from '../types';
 
@@ -157,7 +158,7 @@ export const subscribeToClassFirestore = (
   if (!db) return () => {};
 
   const classRef = doc(db, 'classes', classId);
-  return onSnapshot(classRef, (snap) => {
+  return onSnapshot(classRef, (snap: DocumentSnapshot) => {
     if (snap.exists()) {
       const data = snap.data() as { map: HexTile[]; globalParameters: { oxygen: number; temperature: number; oceans: number } };
       callback(data);
