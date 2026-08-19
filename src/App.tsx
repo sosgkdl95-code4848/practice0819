@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Header } from './components/Header';
 import { TerraformingBoard } from './components/board/TerraformingBoard';
 import { Leaderboard } from './components/Leaderboard';
@@ -7,10 +7,33 @@ import { TeacherPanel } from './components/TeacherPanel';
 import { VictoryModal } from './components/VictoryModal';
 import { LoginPage } from './components/auth/LoginPage';
 import { useAuthStore } from './store/useAuthStore';
+import { subscribeToAuth } from './services/firebase';
 import { Rocket, Heart } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { currentUser } = useAuthStore();
+  const { currentUser, setUser } = useAuthStore();
+
+  // Firebase Auth 상태 자동 감지 및 세션 복원
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth((fbUser, isTeacher) => {
+      if (fbUser && !currentUser) {
+        const role = isTeacher ? 'admin' : 'student';
+        setUser({
+          uid: fbUser.uid,
+          email: fbUser.email || '',
+          displayName: fbUser.displayName || (role === 'admin' ? '선생님' : '학생 대원'),
+          photoURL: fbUser.photoURL || undefined,
+          role,
+          classId: 'class-mars-01',
+          tier: role === 'admin' ? 35 : 20,
+          coins: role === 'admin' ? 100 : 20,
+          groupName: role === 'admin' ? '교사 관리' : '1모둠 (아레스)',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [currentUser, setUser]);
 
   // 로그인하지 않은 상태이면 첫 페이지로 구글 로그인 화면 렌더링
   if (!currentUser) {

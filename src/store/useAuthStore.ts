@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserDoc } from '../types';
-import { signInWithGoogle, logOut, isFirebaseConfigured, syncUserProfileFirestore } from '../services/firebase';
+import {
+  signInWithGoogle,
+  logOut,
+  isFirebaseConfigured,
+  syncUserProfileFirestore,
+} from '../services/firebase';
 import { soundFX } from '../utils/sound';
 
 interface AuthState {
@@ -15,12 +20,13 @@ interface AuthState {
   loginAsDemoStudent: (name: string, groupName: string) => void;
   logoutUser: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: UserDoc | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      currentUser: null, // 첫 화면이 로그인 페이지가 되도록 기본값 null
+      currentUser: null,
       isAuthenticating: false,
       error: null,
 
@@ -29,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           if (!isFirebaseConfigured()) {
             set({
-              error: 'Firebase 환경변수가 설정되지 않아 로컬 데모 모드로 연결합니다.',
+              error: 'Firebase 환경변수가 설정되지 않아 데모 관리자로 연결합니다.',
               isAuthenticating: false,
             });
             get().loginAsDemoTeacher('teacher@school.kr');
@@ -42,21 +48,44 @@ export const useAuthStore = create<AuthState>()(
             return false;
           }
 
-          // Firestore DB와 프로필 동기화
-          const userDoc = await syncUserProfileFirestore(
-            {
-              uid: res.user.uid,
-              email: res.user.email,
-              displayName: res.user.displayName,
-              photoURL: res.user.photoURL,
-            },
-            res.isTeacher
-          );
+          // 1. 구글 인증 정보로 기본 유저 객체 즉시 생성
+          const role = res.isTeacher ? 'admin' : 'student';
+          const baseUser: UserDoc = {
+            uid: res.user.uid,
+            email: res.user.email || '',
+            displayName: res.user.displayName || (role === 'admin' ? '선생님' : '학생 대원'),
+            photoURL: res.user.photoURL || undefined,
+            role,
+            classId: 'class-mars-01',
+            tier: role === 'admin' ? 35 : 20,
+            coins: role === 'admin' ? 100 : 20,
+            groupName: role === 'admin' ? '교사 관리' : '1모둠 (아레스)',
+            createdAt: new Date().toISOString(),
+          };
 
-          set({ currentUser: userDoc, isAuthenticating: false });
+          // 2. 화면 전환이 멈추지 않도록 즉시 로그인 상태로 전환
+          set({ currentUser: baseUser, isAuthenticating: false, error: null });
           soundFX.playCoinSound();
+
+          // 3. 백그라운드에서 Firestore 프로필 동기화 시도
+          try {
+            const syncedUser = await syncUserProfileFirestore(
+              {
+                uid: res.user.uid,
+                email: res.user.email,
+                displayName: res.user.displayName,
+                photoURL: res.user.photoURL,
+              },
+              res.isTeacher
+            );
+            set({ currentUser: syncedUser });
+          } catch (syncErr) {
+            console.warn('Firestore 프로필 동기화 참고:', syncErr);
+          }
+
           return true;
         } catch (err: unknown) {
+          console.error('구글 로그인 오류 상세:', err);
           const message = err instanceof Error ? err.message : '구글 로그인 중 오류가 발생했습니다.';
           set({ error: message, isAuthenticating: false });
           soundFX.playErrorSound();
@@ -68,7 +97,7 @@ export const useAuthStore = create<AuthState>()(
         const teacherDoc: UserDoc = {
           uid: `teacher-${Date.now()}`,
           email,
-          displayName: '김선생님 (관리자)',
+          displayName: '선생님 (관리자)',
           role: 'admin',
           classId: 'class-mars-01',
           tier: 35,
@@ -99,16 +128,24 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logoutUser: async () => {
-        await logOut();
-        set({ currentUser: null, error: null });
+        try {
+          await logOut();
+        } catch (e) {
+          console.warn('로그아웃 에러:', e);
+        }
+        set({ currentUser: null, error: null, isAuthenticating: false });
       },
 
       clearError: () => {
         set({ error: null });
       },
+
+      setUser: (user: UserDoc | null) => {
+        set({ currentUser: user });
+      },
     }),
     {
-      name: 'terraforming-auth-session',
+      name: 'terraforming-auth-session-v2',
     }
   )
 );

@@ -6,6 +6,7 @@ import {
   signOut,
   Auth,
   User as FirebaseUser,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -49,10 +50,11 @@ const getInitialConfig = (): FirebaseConfigParams => {
 };
 
 export const ADMIN_EMAILS: string[] = (
-  import.meta.env.VITE_ADMIN_EMAILS || 'teacher@school.kr,admin@school.kr,teacher@gmail.com'
+  import.meta.env.VITE_ADMIN_EMAILS || 'tmdcjf@asan.cnees.kr,dbghwns@asan.cnees.kr,teacher@school.kr'
 )
   .split(',')
-  .map((e: string) => e.trim().toLowerCase());
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
@@ -69,12 +71,10 @@ export const initFirebase = (config: FirebaseConfigParams = currentConfig) => {
 
   try {
     currentConfig = config;
-    localStorage.setItem('terraforming_firebase_config', JSON.stringify(config));
-
     app = getApps().length === 0 ? initializeApp(config) : getApps()[0];
     auth = getAuth(app);
     db = getFirestore(app);
-    console.log('🔥 Firebase가 성공적으로 초기화되었습니다! (Project:', config.projectId, ')');
+    console.log('🔥 Firebase 초기화 완료 (Project:', config.projectId, ')');
   } catch (error) {
     console.error('Firebase 초기화 실패:', error);
   }
@@ -92,12 +92,30 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
  */
 export const signInWithGoogle = async (): Promise<{ user: FirebaseUser; isTeacher: boolean } | null> => {
   if (!auth) {
-    throw new Error('Firebase Auth가 초기화되지 않았습니다. Firebase 설정을 먼저 등록해 주세요.');
+    throw new Error('Firebase Auth가 초기화되지 않았습니다.');
   }
   const result = await signInWithPopup(auth, googleProvider);
   const email = (result.user.email || '').toLowerCase();
-  const isTeacher = ADMIN_EMAILS.includes(email);
+  const isTeacher = ADMIN_EMAILS.some((admin) => admin && (email === admin || email.includes(admin)));
   return { user: result.user, isTeacher };
+};
+
+/**
+ * Auth 상태 변경 실시간 구독
+ */
+export const subscribeToAuth = (
+  callback: (user: FirebaseUser | null, isTeacher: boolean) => void
+): (() => void) => {
+  if (!auth) return () => {};
+  return onAuthStateChanged(auth, (user) => {
+    if (user) {
+      const email = (user.email || '').toLowerCase();
+      const isTeacher = ADMIN_EMAILS.some((admin) => admin && (email === admin || email.includes(admin)));
+      callback(user, isTeacher);
+    } else {
+      callback(null, false);
+    }
+  });
 };
 
 /**
@@ -110,7 +128,7 @@ export const logOut = async (): Promise<void> => {
 };
 
 /**
- * Firestore users 컬렉션 프로필 동기화
+ * Firestore users 컬렉션 프로필 동기화 (에러 발생 시에도 안전하게 유저 객체 반환)
  */
 export const syncUserProfileFirestore = async (
   fbUser: { uid: string; email: string | null; displayName: string | null; photoURL: string | null },
@@ -122,12 +140,12 @@ export const syncUserProfileFirestore = async (
   const defaultUserDoc: UserDoc = {
     uid: fbUser.uid,
     email: fbUser.email || '',
-    displayName: fbUser.displayName || (role === 'admin' ? '김선생님' : '학생 대원'),
+    displayName: fbUser.displayName || (role === 'admin' ? '선생님' : '학생 대원'),
     photoURL: fbUser.photoURL || undefined,
     role,
     classId,
-    tier: 20,
-    coins: 20,
+    tier: role === 'admin' ? 35 : 20,
+    coins: role === 'admin' ? 100 : 20,
     groupName: role === 'admin' ? '교사 관리' : '1모둠 (아레스)',
     createdAt: new Date().toISOString(),
   };
@@ -136,14 +154,19 @@ export const syncUserProfileFirestore = async (
     return defaultUserDoc;
   }
 
-  const userRef = doc(db, 'users', fbUser.uid);
-  const snap = await getDoc(userRef);
+  try {
+    const userRef = doc(db, 'users', fbUser.uid);
+    const snap = await getDoc(userRef);
 
-  if (snap.exists()) {
-    const data = snap.data() as UserDoc;
-    return { ...data, role: isTeacher ? 'admin' : data.role || role };
-  } else {
-    await setDoc(userRef, defaultUserDoc);
+    if (snap.exists()) {
+      const data = snap.data() as UserDoc;
+      return { ...data, role: isTeacher ? 'admin' : data.role || role };
+    } else {
+      await setDoc(userRef, defaultUserDoc);
+      return defaultUserDoc;
+    }
+  } catch (err) {
+    console.warn('Firestore 접근 지연 / 로컬 프로필로 우선 연결:', err);
     return defaultUserDoc;
   }
 };
@@ -176,15 +199,19 @@ export const updateClassBoardFirestore = async (
 ): Promise<void> => {
   if (!db) return;
 
-  const classRef = doc(db, 'classes', classId);
-  await setDoc(
-    classRef,
-    {
-      classId,
-      map,
-      globalParameters,
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+  try {
+    const classRef = doc(db, 'classes', classId);
+    await setDoc(
+      classRef,
+      {
+        classId,
+        map,
+        globalParameters,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Firestore 보드판 저장 경고:', err);
+  }
 };
