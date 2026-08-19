@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { isFirebaseConfigured } from '../../services/firebase';
-import { FirebaseConfigModal } from './FirebaseConfigModal';
 import {
   Rocket,
   ShieldCheck,
@@ -9,7 +7,6 @@ import {
   Sparkles,
   Globe,
   ChevronRight,
-  Flame,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -23,9 +20,6 @@ export const LoginPage: React.FC = () => {
 
   const [studentName, setStudentName] = useState('');
   const [studentGroup, setStudentGroup] = useState('1모둠 (아레스)');
-  const [showConfigModal, setShowConfigModal] = useState(false);
-
-  const hasFirebase = isFirebaseConfigured();
 
   const handleCustomStudentLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,23 +49,9 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowConfigModal(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-              hasFirebase
-                ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                : 'bg-space-850 border-orange-500/40 text-orange-300 hover:bg-space-800 shadow-neon-orange animate-pulse'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>{hasFirebase ? 'Firebase 연결됨' : 'Firebase 키 설정'}</span>
-          </button>
-
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-semibold">
-            <Globe className="w-4 h-4 text-cyan-400" />
-            <span>학급 경영 미션 컨트롤</span>
-          </div>
+        <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold">
+          <Globe className="w-4 h-4 text-cyan-400" />
+          <span>학급 경영 미션 컨트롤</span>
         </div>
       </header>
 
@@ -225,12 +205,6 @@ export const LoginPage: React.FC = () => {
       <footer className="relative z-10 py-6 text-center text-xs text-slate-500">
         <p>Terraforming Class • Google Firebase Realtime Authentication System</p>
       </footer>
-
-      {/* Firebase 연동 설정 모달 */}
-      <FirebaseConfigModal
-        isOpen={showConfigModal}
-        onClose={() => setShowConfigModal(false)}
-      />
     </div>
   );
 };
