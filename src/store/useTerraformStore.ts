@@ -84,12 +84,12 @@ export const useTerraformStore = create<TerraformState>()(
           oceanSpot.type = 'ocean';
           oceanSpot.ownerStudentName = '장주원';
         }
-        const emptySpot1 = tiles.find((t) => t.type === 'empty' && t.label === 'Tharsis');
+        const emptySpot1 = tiles.find((t) => t.type === 'empty' && (t.label?.includes('Tharsis') || t.label?.includes('Olympus')));
         if (emptySpot1) {
           emptySpot1.type = 'greenery';
           emptySpot1.ownerStudentName = '배서윤';
         }
-        const emptySpot2 = tiles.find((t) => t.type === 'empty' && t.label === 'Noctis City');
+        const emptySpot2 = tiles.find((t) => t.type === 'empty' && t.label?.includes('Noctis'));
         if (emptySpot2) {
           emptySpot2.type = 'city';
           emptySpot2.ownerStudentName = '강지유';
